@@ -96,3 +96,11 @@ func SafeCutPrefix(s string, prefix string) string {
 	}
 	return s
 }
+
+func ScrubPath(path string) string {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		panic(fmt.Sprintf("error finding absolute path for %s: %s", err.Error()))
+	}
+	return filepath.Clean(absPath)
+}

@@ -3,10 +3,22 @@ package processor
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
+
+type Config struct {
+	TemplateParamsFile string
+	DirsMapping        map[string]string
+}
+
+type TemplateMgr interface {
+	ParseOne(tmplName string, tmplBody []byte) error
+	Execute(tmplName string, tmplData any, output io.Writer) error
+}
 
 type Params map[string]any
 
@@ -14,6 +26,8 @@ func Process(
 	templateMgrFactories map[string]func() TemplateMgr,
 	inputRoot string,
 	outputRoot string,
+	ignoreFiles []string,
+	config Config,
 	params Params,
 	readFileFn func(string) ([]byte, error),
 	writeFileFn func(string, []byte, os.FileMode) error,
@@ -38,7 +52,13 @@ func Process(
 
 	// Process each template found, generating a corresponding output file in
 	// the output directory.
+	outputContents := map[string][]byte{}
 	for _, templateName := range templateNames {
+		absTemplateName := ScrubPath(templateName)
+		if slices.Contains(ignoreFiles, absTemplateName) {
+			continue
+		}
+
 		templateExt := filepath.Ext(templateName)
 		templateContents, err := templatesLoader.LoadFileAsBytes(templateName)
 		if err != nil {
@@ -75,12 +95,16 @@ func Process(
 		outputFileDir := filepath.Dir(outputPath)
 		err = os.MkdirAll(outputFileDir, 0755)
 		if err != nil {
-			addError("error creating output directory: %s", err.Error())
+			addError("error creating output directory %s: %s", outputFileDir, err.Error())
 			continue
 		}
 
-		Printfln("    Writing file %s", outputPath)
-		err = os.WriteFile(outputPath, output.Bytes(), 0644)
+		outputContents[outputPath] = output.Bytes()
+	}
+
+	for path, content := range outputContents {
+		Printfln("    Writing file %s", path)
+		err := os.WriteFile(path, content, 0644)
 		if err != nil {
 			addError("error writing output file: %s", err.Error())
 			continue
