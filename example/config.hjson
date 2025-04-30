@@ -1,4 +1,5 @@
+TemplateTypeExt: .gotmpl
 TemplateParamsFile: params_template.hjson
 DirsMapping: {
-    "source_subdir": "subdir",
+    "templates": ".",
 }

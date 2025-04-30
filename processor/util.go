@@ -83,7 +83,7 @@ func TrimExt(path string) (string, string) {
 	ext := filepath.Ext(path)
 	noExt, hasExt := strings.CutSuffix(path, ext)
 	if !hasExt {
-		panic("Whaaa?")
+		panic("Whaa??")
 	}
 	return noExt, ext
 
@@ -92,7 +92,7 @@ func TrimExt(path string) (string, string) {
 func SafeCutPrefix(s string, prefix string) string {
 	s, hasPrefix := strings.CutPrefix(s, prefix)
 	if !hasPrefix {
-		panic("Whaa?")
+		panic(fmt.Sprintf("failed to find expected prefix %q on path %q", prefix, s))
 	}
 	return s
 }

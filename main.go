@@ -109,19 +109,22 @@ func main() {
 
 	}
 
+	templateMgrFactory, hasExt := templateMgrFactories[config.TemplateTypeExt]
+	if !hasExt {
+		processor.Printfln("unrecognized template type %q in config", config.TemplateTypeExt)
+		hasErrors = true
+	}
+
 	if hasErrors {
 		os.Exit(1)
 	}
 
 	_ = os.RemoveAll(outputRoot)
 	errs := processor.Process(
-		templateMgrFactories,
+		templateMgrFactory(),
 		inputRoot,
 		outputRoot,
-		[]string{
-			processor.ScrubPath(config.TemplateParamsFile),
-			processor.ScrubPath(sourceConfigPath),
-		},
+		config,
 		params,
 		os.ReadFile,
 		os.WriteFile,
