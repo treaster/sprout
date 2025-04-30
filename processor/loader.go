@@ -48,20 +48,24 @@ func (l FileLoader) LoadFileAsBytes(s string) ([]byte, error) {
 }
 
 func (l FileLoader) LoadFile(s string, output any) error {
-	ext := filepath.Ext(s)
-
 	fullPath := filepath.Join(l.baseDir, s)
 	fileBytes, err := l.readFileFn(fullPath)
 	if err != nil {
 		return err
 	}
 
+	return l.DeserializeBytes(s, fileBytes, output)
+}
+
+func (l FileLoader) DeserializeBytes(s string, contentBytes []byte, output any) error {
+	ext := filepath.Ext(s)
+
 	fn, hasFormat := l.typesMap[ext]
 	if !hasFormat {
 		panic(fmt.Sprintf("Unknown extension on file path %q", s))
 	}
 
-	return fn(fileBytes, output)
+	return fn(contentBytes, output)
 }
 
 func (l FileLoader) FindFilesWithName(targetName string) []string {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"os"
@@ -115,6 +116,32 @@ func main() {
 		hasErrors = true
 	}
 
+	templateMgr := templateMgrFactory()
+	configBytes, err := configLoader.LoadFileAsBytes(sourceConfigPath)
+	if err != nil {
+		processor.Printfln("error reloading config for template rewrite?!?: %s", err.Error())
+		hasErrors = true
+	}
+	err = templateMgr.ParseOne("__config__", configBytes)
+	if err != nil {
+		processor.Printfln("error processing config as template: %s", err.Error())
+		hasErrors = true
+	}
+
+	var processedConfigBuf bytes.Buffer
+	err = templateMgr.Execute("__config__", params, &processedConfigBuf)
+	if err != nil {
+		processor.Printfln("error executing config template: %s", err.Error())
+		hasErrors = true
+	}
+
+	var processedConfig processor.Config
+	err = configLoader.DeserializeBytes(sourceConfigPath, processedConfigBuf.Bytes(), &processedConfig)
+	if err != nil {
+		processor.Printfln("error deserializing processed config bytes: %s", err.Error())
+		hasErrors = true
+	}
+
 	if hasErrors {
 		os.Exit(1)
 	}
@@ -124,7 +151,7 @@ func main() {
 		templateMgrFactory(),
 		inputRoot,
 		outputRoot,
-		config,
+		processedConfig,
 		params,
 		os.ReadFile,
 		os.WriteFile,
