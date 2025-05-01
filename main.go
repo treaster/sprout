@@ -12,6 +12,8 @@ import (
 )
 
 func main() {
+	const defaultDigestFile = "digest.txt"
+
 	var sourceConfigPath string
 	flag.StringVar(&sourceConfigPath, "source-config", "", "The definition config of the template to sprout.")
 
@@ -23,6 +25,9 @@ func main() {
 
 	var deleteExistingOutput bool
 	flag.BoolVar(&deleteExistingOutput, "delete-existing-output", false, "delete an existing output directory, if it exists")
+
+	var digestPath string
+	flag.StringVar(&digestPath, "digest", defaultDigestFile, "record the filepaths of each generated file, so they can be cleaned up if necessary.")
 
 	flag.Parse()
 
@@ -36,23 +41,35 @@ func main() {
 		fmt.Println("--source-config is required and not defined")
 		hasErrors = true
 	}
+	inputRoot := filepath.Dir(sourceConfigPath)
 
 	if outputRoot == "" {
 		fmt.Println("--output is required and not defined")
 		hasErrors = true
 	}
+	outputRoot = filepath.Clean(outputRoot) + "/"
 
-	inputRoot := filepath.Dir(sourceConfigPath)
-	absParamsPath := processor.ScrubPath(paramsPath)
-	absOutputPath := processor.ScrubPath(outputRoot) + "/"
-	if strings.HasPrefix(absParamsPath, absOutputPath) {
-		processor.Printfln("--params path is inside --output path. This is not allowed.")
+	// Load the digest file, if it exists.
+	absDigestPath := filepath.Join(outputRoot, digestPath)
+	if digestPath == defaultDigestFile {
+		processor.Printfln("using default digest path %s", absDigestPath)
+	}
+	digestBytes, err := os.ReadFile(absDigestPath)
+	if err != nil && !os.IsNotExist(err) {
+		processor.Printfln("error reading digest file: %s", err.Error())
 		hasErrors = true
 	}
 
+	var digestPaths []string
+	if err == nil {
+		digestPaths = strings.Split(string(digestBytes), "\n")
+		digestPaths = append(digestPaths, digestPath)
+	}
+
+	// Load the template config.
 	var config processor.Config
 	configLoader := processor.MakeFileLoader(".", ".", os.ReadFile)
-	err := configLoader.LoadFile(sourceConfigPath, &config)
+	err = configLoader.LoadFile(sourceConfigPath, &config)
 	if err != nil {
 		processor.Printfln("error loading source config: %s", err.Error())
 		hasErrors = true
@@ -70,10 +87,6 @@ func main() {
 	//
 	// The next time we run sprout, the final params file will already exist,
 	// and we'll skip this step and just run the actual template execution.
-	//
-	// TODO(treaster): Auto-scrub the output directory if it appears to already
-	// exist. We don't want old template remnants cluttering the space if we
-	// rerun sprout to regenerate the directory.
 	paramsLoader := processor.MakeFileLoader(".", ".", os.ReadFile)
 
 	var params processor.Params
@@ -90,33 +103,17 @@ func main() {
 		}
 	}
 
-	fileInfo, err := os.Stat(outputRoot)
-	if err != nil && !os.IsNotExist(err) {
-		processor.Printfln("error checking status of --output directory: %s", err.Error())
-		hasErrors = true
-	}
-
-	if err == nil {
-		processor.Printfln("found existing directory")
-		if !fileInfo.IsDir() {
-			processor.Printfln("error in --output target. Expected directory, but found a normal file")
-			hasErrors = true
-		}
-
-		if !deleteExistingOutput {
-			processor.Printfln("--output directory already exists. Remove it, or use --delete-existing-output")
-			hasErrors = true
-		}
-
-	}
-
+	// Select a template engine, based on the TemplateTypeExt specified in the config.
 	templateMgrFactory, hasExt := templateMgrFactories[config.TemplateTypeExt]
 	if !hasExt {
 		processor.Printfln("unrecognized template type %q in config", config.TemplateTypeExt)
 		hasErrors = true
 	}
-
 	templateMgr := templateMgrFactory()
+
+	// Reload the config again, and this type parse it as a template using
+	// the params as an input. This will fully resolve any templated variables
+	// anywhere in the config specification.
 	configBytes, err := configLoader.LoadFileAsBytes(sourceConfigPath)
 	if err != nil {
 		processor.Printfln("error reloading config for template rewrite?!?: %s", err.Error())
@@ -142,15 +139,37 @@ func main() {
 		hasErrors = true
 	}
 
+	// If we've encountered any errors so far, exit before we start doing any
+	// mutations to the filesystem.
 	if hasErrors {
 		os.Exit(1)
 	}
 
-	_ = os.RemoveAll(outputRoot)
+	// Delete all entries from the digest, which represents files written by a
+	// previous run of sprout. If removing a file would leave its directory
+	// empty, remove the directory also. Recursively repeat this until a
+	// nonempty directory is found.
+	for _, digestEntry := range digestPaths {
+		for digestPart := digestEntry; digestPart != ""; digestPart = filepath.Dir(digestPart) {
+			pathInOutput := filepath.Join(outputRoot, digestPart)
+			err = os.Remove(pathInOutput)
+			if err != nil && digestPart == digestEntry {
+				processor.Printfln("error removing digest entry %s: %s", pathInOutput, err.Error())
+				hasErrors = true
+			}
+			if err != nil {
+				break
+			}
+			processor.Printfln("delete digest entry %s", pathInOutput)
+		}
+	}
+
+	// Execute the template logic.
 	errs := processor.Process(
 		templateMgrFactory(),
 		inputRoot,
 		outputRoot,
+		absDigestPath,
 		processedConfig,
 		params,
 		os.ReadFile,

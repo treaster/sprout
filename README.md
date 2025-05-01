@@ -23,9 +23,19 @@ If the Postgres option is enabled, then all Postgres boilerplate code is
 included. If the options is disabled, then that same code is omitted.
 
 ```
+go build -o sprout .
 ./sprout \
-    --input=./example_template \
-    --output=../instantiated_example
+    --source-config=example/config.hjson \
+    --output=./my_instantiated_template \
+    --delete-existing-output
+```
+
+or:
+```
+go run . \
+    --source-config=example/config.hjson \
+    --output=./my_instantiated_template \
+    --delete-existing-output
 ```
 
 Sprout is inspired by, and borrows a lot of code from, the [incant static site generator](https://github.com/treaster/incant).

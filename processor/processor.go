@@ -9,23 +9,35 @@ import (
 	"strings"
 )
 
+// Config is a static definition defining the template behavior. It itself
+// can be templated, except for the TemplateTypeExt field. All other fields
+// will be used only after any template expressions are resolved.
 type Config struct {
 	TemplateTypeExt    string
 	TemplateParamsFile string
 	DirsMapping        map[string]string
 }
 
+// Params is the user-specified input to the template. These params are combined
+// with the actual template files to produce the final output. All variables that
+// are referenced in the templates must be defined in the Params. A clean
+// template specification should include an example Params, to demonstrate what
+// fields are expected.
+type Params map[string]any
+
+// TemplateMgr represents a templating engine. A new template system
+// (e.g. Mustache) can be dropped in easily if it satisfies, or can be wrapped
+// in, this interface.
 type TemplateMgr interface {
 	ParseOne(tmplName string, tmplBody []byte) error
 	Execute(tmplName string, tmplData any, output io.Writer) error
 }
 
-type Params map[string]any
-
 func Process(
 	templateMgr TemplateMgr,
 	inputRoot string,
 	outputRoot string,
+	absDigestPath string,
 	config Config,
 	params Params,
 	readFileFn func(string) ([]byte, error),
@@ -85,17 +97,10 @@ func Process(
 				templateName = strings.TrimSuffix(templateName, config.TemplateTypeExt)
 			}
 
-			outputSubdirRelativePath := filepath.Join(outputRoot, targetSubdir)
-
-			// Write the output to a corresponding file in the output directory.
-			outputPath := filepath.Join(outputSubdirRelativePath, templateName)
-			outputFileDir := filepath.Dir(outputPath)
-			err = os.MkdirAll(outputFileDir, 0755)
-			if err != nil {
-				addError("error creating output directory %s: %s", outputFileDir, err.Error())
-				continue
-			}
-
+			// Prepare output content, but don't write it yet, until we're
+			// confident there are no processing errors in any templates.
+			outputSubdirPath := filepath.Join(outputRoot, targetSubdir)
+			outputPath := filepath.Join(outputSubdirPath, templateName)
 			_, hasPath := outputContents[outputPath]
 			if hasPath {
 				addError("at least two template files map to the same output location: %s", outputPath)
@@ -105,13 +110,37 @@ func Process(
 		}
 	}
 
+	// Short-circuit before doing any writes, if errors occurred.
+	if len(errs) > 0 {
+		return errs
+	}
+
+	// Write the output to a corresponding file in the output directory.
+	filesWritten := make([]string, 0, len(outputContents))
 	for path, content := range outputContents {
+		outputFileDir := filepath.Dir(path)
+		err := os.MkdirAll(outputFileDir, 0755)
+		if err != nil {
+			addError("error creating output directory %s: %s", outputFileDir, err.Error())
+			continue
+		}
+
 		Printfln("    Writing file %s", path)
-		err := os.WriteFile(path, content, 0644)
+		err = os.WriteFile(path, content, 0644)
 		if err != nil {
 			addError("error writing output file: %s", err.Error())
 			continue
 		}
+
+		path = SafeCutPrefix(path, outputRoot)
+		filesWritten = append(filesWritten, path)
+	}
+
+	// Write the digest file.
+	digestContents := strings.Join(filesWritten, "\n")
+	err := os.WriteFile(absDigestPath, []byte(digestContents), 0644)
+	if err != nil {
+		addError("error writing digest file: %s", err.Error())
 	}
 
 	return errs
