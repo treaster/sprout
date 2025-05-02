@@ -1,4 +1,5 @@
 project_name: BigPotato
+empty_file_is_empty: true
 foo: Fizz
 bar: true
 baz: 10

@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -106,6 +108,12 @@ func Process(
 				addError("at least two template files map to the same output location: %s", outputPath)
 				continue
 			}
+
+			outputBytes := bytes.TrimSpace(output.Bytes())
+			if len(outputBytes) == 0 {
+				Printfln("skipping output file with no output: %s", outputPath)
+				continue
+			}
 			outputContents[outputPath] = output.Bytes()
 		}
 	}
@@ -117,7 +125,9 @@ func Process(
 
 	// Write the output to a corresponding file in the output directory.
 	filesWritten := make([]string, 0, len(outputContents))
-	for path, content := range outputContents {
+	allPaths := slices.Sorted(maps.Keys(outputContents))
+	for _, path := range allPaths {
+		content := outputContents[path]
 		outputFileDir := filepath.Dir(path)
 		err := os.MkdirAll(outputFileDir, 0755)
 		if err != nil {
