@@ -18,6 +18,7 @@ type Config struct {
 	TemplateTypeExt    string
 	TemplateParamsFile string
 	DirsMapping        map[string]string
+	FilesMapping       map[string]string
 }
 
 // Params is the user-specified input to the template. These params are combined
@@ -102,7 +103,15 @@ func Process(
 			// Prepare output content, but don't write it yet, until we're
 			// confident there are no processing errors in any templates.
 			outputSubdirPath := filepath.Join(outputRoot, targetSubdir)
-			outputPath := filepath.Join(outputSubdirPath, templateName)
+			realTemplateName, hasFileMapping := config.FilesMapping[templateName]
+			if !hasFileMapping {
+				// This is the common case. Most file names *won't* need to be
+				// rewritten with params-aware name components.
+				realTemplateName = templateName
+			} else {
+				Printfln("Remap filename %q -> %q", templateName, realTemplateName)
+			}
+			outputPath := filepath.Join(outputSubdirPath, realTemplateName)
 			_, hasPath := outputContents[outputPath]
 			if hasPath {
 				addError("at least two template files map to the same output location: %s", outputPath)
