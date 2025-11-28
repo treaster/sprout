@@ -5,8 +5,14 @@ go 1.24.3
 require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/CloudyKit/jet/v6 v6.3.1
+	github.com/flosch/pongo2/v6 v6.0.0
 	github.com/hjson/hjson-go/v4 v4.5.0
+	github.com/stretchr/testify v1.11.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require github.com/CloudyKit/fastprinter v0.0.0-20200109182630-33d98a066a53 // indirect
+require (
+	github.com/CloudyKit/fastprinter v0.0.0-20200109182630-33d98a066a53 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+)

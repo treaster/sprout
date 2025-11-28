@@ -34,6 +34,7 @@ func main() {
 	templateMgrFactories := map[string]func() processor.TemplateMgr{
 		".gotmpl": processor.GoTemplateMgr,
 		".jet":    processor.JetTemplateMgr,
+		".pongo":  processor.PongoTemplateMgr,
 	}
 
 	hasErrors := false
