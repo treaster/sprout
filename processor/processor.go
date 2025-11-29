@@ -6,6 +6,7 @@ import (
 	"io"
 	"maps"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -15,10 +16,11 @@ import (
 // can be templated, except for the TemplateTypeExt field. All other fields
 // will be used only after any template expressions are resolved.
 type Config struct {
-	TemplateTypeExt    string
-	TemplateParamsFile string
-	DirsMapping        map[string]string
-	FilesMapping       map[string]string
+	TemplateTypeExt     string
+	TemplateParamsFile  string
+	DirsMapping         map[string]string
+	FilesMapping        map[string]string
+	PostProcessorScript string
 }
 
 // Params is the user-specified input to the template. These params are combined
@@ -160,6 +162,42 @@ func Process(
 	err := os.WriteFile(absDigestPath, []byte(digestContents), 0644)
 	if err != nil {
 		addError("error writing digest file: %s", err.Error())
+	}
+
+	// Run the post-processing script, if any.
+	for config.PostProcessorScript != "" {
+		fullRelativePath := filepath.Join(outputRoot, config.PostProcessorScript)
+		Printfln("running post-processor at %q", fullRelativePath)
+
+		err = os.Chdir(outputRoot)
+		if err != nil {
+			addError("error switching directories to %q to run post-processor: %s", outputRoot, err.Error())
+			break
+		}
+
+		relativePath := filepath.Join(".", config.PostProcessorScript)
+		err = os.Chmod(relativePath, 0755)
+		if err != nil {
+			addError("error chmod'ing post-processor to 755: %s", err.Error())
+			break
+		}
+
+		cmd := exec.Command(relativePath)
+		stdoutStderr, err := cmd.CombinedOutput()
+		if err != nil {
+			addError("error running post-processor: %s", err.Error())
+			break
+		}
+		Printfln("\npost-processor output:\n%s\n", stdoutStderr)
+
+		Printfln("removing post-processor file %q", fullRelativePath)
+		err = os.Remove(relativePath)
+		if err != nil {
+			addError("error removing post-processor file: %s", err.Error())
+			break
+		}
+
+		break
 	}
 
 	return errs
