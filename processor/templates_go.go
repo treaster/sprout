@@ -8,11 +8,17 @@ import (
 )
 
 func GoTemplateMgr() TemplateMgr {
+	templateFuncs := TemplateFuncs()
+	funcMap := template.FuncMap{
+		"NamedArgs": NamedArgs,
+	}
+	for name, fn := range templateFuncs {
+		funcMap[name] = fn
+	}
+
 	tmpl := template.
 		New("sprout").
-		Funcs(template.FuncMap{
-			"NamedArgs": NamedArgs,
-		}).
+		Funcs(funcMap).
 		Option("missingkey=error")
 
 	return &goTemplateMgr{tmpl}

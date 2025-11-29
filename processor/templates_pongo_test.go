@@ -13,8 +13,8 @@ func TestBasicPongo(t *testing.T) {
 
 	tmpl1 := []byte(`
 	1. Constant
-	2. {{ data.Value }}
-	3. {{ data.Nested.Value }}
+	2. {{ PARAMS.Value }}
+	3. {{ PARAMS.Nested.Value }}
 	4. {{ Sprintf("ab %q ef", "cd") }}
 	<div attr="value" />
 	`)

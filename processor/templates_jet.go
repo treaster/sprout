@@ -36,10 +36,12 @@ func JetTemplateMgr() TemplateMgr {
 	set := jet.NewSet(
 		loader,
 		jet.WithSafeWriter(nil),
-	).
-		AddGlobal("Sprintf", func(format string, a ...any) string {
-			return fmt.Sprintf(format, a...)
-		})
+	)
+
+	templateFuncs := TemplateFuncs()
+	for name, fn := range templateFuncs {
+		set.AddGlobal(name, fn)
+	}
 
 	return &jetTemplateMgr{
 		loader,

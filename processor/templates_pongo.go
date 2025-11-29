@@ -39,10 +39,9 @@ func PongoTemplateMgr() TemplateMgr {
 	loader := pongoCustomLoader{}
 	set := pongo2.NewSet("sprout", loader)
 
-	set.Globals = pongo2.Context{
-		"Sprintf": func(format string, a ...any) string {
-			return fmt.Sprintf(format, a...)
-		},
+	templateFuncs := TemplateFuncs()
+	for name, fn := range templateFuncs {
+		set.Globals[name] = fn
 	}
 
 	set.Options.TrimBlocks = false   // default is false
@@ -65,7 +64,7 @@ func (tm *pongoTemplateMgr) ParseOne(tmplName string, tmplBody []byte) error {
 }
 
 func (tm *pongoTemplateMgr) Execute(tmplName string, tmplData any, output io.Writer) error {
-	outputStr, err := tm.set.RenderTemplateFile(tmplName, map[string]any{"data": tmplData})
+	outputStr, err := tm.set.RenderTemplateFile(tmplName, map[string]any{"PARAMS": tmplData})
 	if err != nil {
 		return err
 	}
