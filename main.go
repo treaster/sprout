@@ -29,6 +29,9 @@ func main() {
 	var digestPath string
 	flag.StringVar(&digestPath, "digest", defaultDigestFile, "record the filepaths of each generated file, so they can be cleaned up if necessary.")
 
+	var autoRunPostProcessor bool
+	flag.BoolVar(&autoRunPostProcessor, "autorun-postprocessor", false, "Automatically execute a post-processing script, if it's specified by the template config. Note that this script can execute arbitrary commands on the host computer. It's best to examine such scripts then execute them manually, unless the template comes from a trusted source.")
+
 	flag.Parse()
 
 	templateMgrFactories := map[string]func() processor.TemplateMgr{
@@ -171,6 +174,7 @@ func main() {
 		inputRoot,
 		outputRoot,
 		absDigestPath,
+		autoRunPostProcessor,
 		processedConfig,
 		params,
 		os.ReadFile,

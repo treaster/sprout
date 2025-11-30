@@ -43,6 +43,7 @@ func Process(
 	inputRoot string,
 	outputRoot string,
 	absDigestPath string,
+	autoRunPostProcessor bool,
 	config Config,
 	params Params,
 	readFileFn func(string) ([]byte, error),
@@ -167,7 +168,6 @@ func Process(
 	// Run the post-processing script, if any.
 	for config.PostProcessorScript != "" {
 		fullRelativePath := filepath.Join(outputRoot, config.PostProcessorScript)
-		Printfln("running post-processor at %q", fullRelativePath)
 
 		err = os.Chdir(outputRoot)
 		if err != nil {
@@ -182,19 +182,35 @@ func Process(
 			break
 		}
 
-		cmd := exec.Command(relativePath)
-		stdoutStderr, err := cmd.CombinedOutput()
-		if err != nil {
-			addError("error running post-processor: %s", err.Error())
-			break
-		}
-		Printfln("\npost-processor output:\n%s\n", stdoutStderr)
+		if autoRunPostProcessor {
+			Printfln("running post-processor at %q", fullRelativePath)
 
-		Printfln("removing post-processor file %q", fullRelativePath)
-		err = os.Remove(relativePath)
-		if err != nil {
-			addError("error removing post-processor file: %s", err.Error())
-			break
+			cmd := exec.Command(relativePath)
+			stdoutStderr, err := cmd.CombinedOutput()
+			if err != nil {
+				addError("error running post-processor: %s", err.Error())
+				break
+			}
+			Printfln("\npost-processor output:\n%s\n", stdoutStderr)
+
+			Printfln("removing post-processor file %q", fullRelativePath)
+			err = os.Remove(relativePath)
+			if err != nil {
+				addError("error removing post-processor file: %s", err.Error())
+				break
+			}
+		} else {
+			Printfln(`
+
+!!!! MANUAL STEP !!!!
+Examine the post-processor script for safety, then run it if you're comfortable.
+Use --autorun-postprocessor to have Sprout run the script automatically.
+Use this only if the template comes from a trusted source.
+
+The post-processor command is:
+
+    %s
+`, fullRelativePath)
 		}
 
 		break

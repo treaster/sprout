@@ -99,6 +99,11 @@ PostProcessorScript is an optional field which defines a script to run after
 the template execution is competed. This script can execute any additional
 commands that need to be run.
 
+By default, the post-processor script must be run manually, to allow the user
+to manually examine the script for safety before execution. However, if the
+template comes from a trusted source, use --autorun-postprocessor on the sprout
+command to have Sprout run the post-processor as part of the template execution.
+
 
 ## Using an existing template
 To generate code for a new project using a Sprout template:
