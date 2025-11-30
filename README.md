@@ -54,9 +54,9 @@ This represents the file extension for templated files. Files in the project
 without this extension will be copied directly to the output directory, with
 no changes. The file extension also controls what template language is used by
 the project. Options include:
-* ".gotempl": The [[text/template][https://pkg.go.dev/text/template]] language provided in the Go standard library.
-* ".jet": The [[Jet template language][https://github.com/CloudyKit/jet/blob/master/docs/syntax.md]].
-* ".pongo": The [[Pongo2 template language][https://github.com/flosch/pongo2]], which aims to replicate Django.
+* ".gotempl": The [text/template](https://pkg.go.dev/text/template) language provided in the Go standard library.
+* ".jet": The [Jet template language](https://github.com/CloudyKit/jet/blob/master/docs/syntax.md).
+* ".pongo": The [Pongo2 template language](https://github.com/flosch/pongo2), which aims to replicate Django.
 
 #### TemplateParamsFile
 This names a file which is an example placeholder configuration showing
