@@ -3,3 +3,4 @@ TemplateParamsFile: params_template.hjson
 DirsMapping: {
     "templates": "{{ .project_name }}",
 }
+PostProcessorScript: "{{ .project_name }}/post_processor.sh"

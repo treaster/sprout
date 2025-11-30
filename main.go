@@ -23,8 +23,8 @@ func main() {
 	var paramsPath string
 	flag.StringVar(&paramsPath, "params", "params.hjson", "The name of the params file to look for in the output.")
 
-	var deleteExistingOutput bool
-	flag.BoolVar(&deleteExistingOutput, "delete-existing-output", false, "delete an existing output directory, if it exists")
+	var unused bool
+	flag.BoolVar(&unused, "delete-existing-output", false, "This flag is unused.")
 
 	var digestPath string
 	flag.StringVar(&digestPath, "digest", defaultDigestFile, "record the filepaths of each generated file, so they can be cleaned up if necessary.")
