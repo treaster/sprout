@@ -48,8 +48,7 @@ func (l FileLoader) LoadFileAsBytes(s string) ([]byte, error) {
 }
 
 func (l FileLoader) LoadFile(s string, output any) error {
-	fullPath := filepath.Join(l.baseDir, s)
-	fileBytes, err := l.readFileFn(fullPath)
+	fileBytes, err := l.LoadFileAsBytes(s)
 	if err != nil {
 		return err
 	}

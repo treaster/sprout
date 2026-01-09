@@ -46,6 +46,7 @@ func main() {
 		hasErrors = true
 	}
 	inputRoot := filepath.Dir(sourceConfigPath)
+	configFile := filepath.Base(sourceConfigPath)
 
 	if outputRoot == "" {
 		fmt.Println("--output is required and not defined")
@@ -72,8 +73,8 @@ func main() {
 
 	// Load the template config.
 	var config processor.Config
-	configLoader := processor.MakeFileLoader(".", ".", os.ReadFile)
-	err = configLoader.LoadFile(sourceConfigPath, &config)
+	configLoader := processor.MakeFileLoader(inputRoot, ".", os.ReadFile)
+	err = configLoader.LoadFile(configFile, &config)
 	if err != nil {
 		processor.Printfln("error loading source config: %s", err.Error())
 		hasErrors = true
@@ -118,7 +119,7 @@ func main() {
 	// Reload the config again, and this type parse it as a template using
 	// the params as an input. This will fully resolve any templated variables
 	// anywhere in the config specification.
-	configBytes, err := configLoader.LoadFileAsBytes(sourceConfigPath)
+	configBytes, err := configLoader.LoadFileAsBytes(configFile)
 	if err != nil {
 		processor.Printfln("error reloading config for template rewrite?!?: %s", err.Error())
 		hasErrors = true

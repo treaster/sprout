@@ -175,8 +175,7 @@ func Process(
 			break
 		}
 
-		relativePath := filepath.Join(".", config.PostProcessorScript)
-		err = os.Chmod(relativePath, 0755)
+		err = os.Chmod(fullRelativePath, 0755)
 		if err != nil {
 			addError("error chmod'ing post-processor to 755: %s", err.Error())
 			break
@@ -185,16 +184,16 @@ func Process(
 		if autoRunPostProcessor {
 			Printfln("running post-processor at %q", fullRelativePath)
 
-			cmd := exec.Command(relativePath)
+			cmd := exec.Command(fullRelativePath)
 			stdoutStderr, err := cmd.CombinedOutput()
+			Printfln("\npost-processor output:\n%s\n", stdoutStderr)
 			if err != nil {
 				addError("error running post-processor: %s", err.Error())
 				break
 			}
-			Printfln("\npost-processor output:\n%s\n", stdoutStderr)
 
 			Printfln("removing post-processor file %q", fullRelativePath)
-			err = os.Remove(relativePath)
+			err = os.Remove(fullRelativePath)
 			if err != nil {
 				addError("error removing post-processor file: %s", err.Error())
 				break

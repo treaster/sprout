@@ -90,9 +90,24 @@ func TrimExt(path string) (string, string) {
 }
 
 func SafeCutPrefix(s string, prefix string) string {
+	s = normalizePath(s)
+	prefix = normalizePath(prefix)
+
+	last := len(prefix) - 1
+	if prefix[last] != '/' {
+		prefix = prefix + "/"
+	}
+
 	s, hasPrefix := strings.CutPrefix(s, prefix)
 	if !hasPrefix {
 		panic(fmt.Sprintf("failed to find expected prefix %q on path %q", prefix, s))
+	}
+	return s
+}
+
+func normalizePath(s string) string {
+	if !filepath.IsAbs(s) && !strings.HasPrefix(s, "./") {
+		s = "./" + s
 	}
 	return s
 }
